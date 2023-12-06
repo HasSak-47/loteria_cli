@@ -13,16 +13,16 @@ pub fn get_path<F: Fn() -> Option<PathBuf>>(f: F) -> LoteriaResult<String>{
 
 #[cfg(target_family= "unix")]
 mod os_th{
-pub static BOARD_PATH : &str = "/baraja";
-pub static DECK_PATH : &str = "/cartas";
+pub static BOARD_PATH : &str = "/cartas";
+pub static DECK_PATH : &str = "/baraja";
 pub static INSTUCTIONS_PATH : &str = "/loteria.txt";
 }
 
-#[cfg(target_windows = "windows")]
+#[cfg(target_family= "windows")]
 mod os_th{
-static BOARD_PATH : &str = "\\baraja";
-static DECK_PATH : &str = "\\cartas";
-static INSTUCTIONS_PATH : &str = "\\loteria.txt";
+pub static BOARD_PATH : &str = "\\baraja";
+pub static DECK_PATH : &str = "\\cartas";
+pub static INSTUCTIONS_PATH : &str = "\\loteria.txt";
 }
 
 use self::os_th::*;
@@ -42,3 +42,9 @@ pub const DEFAULT: &str =
 "SetCount 8
 RandomCenterMarkPair
 ";
+
+pub fn press_enter_to_continue() {
+    let mut s = String::new();
+    println!("presione enter para continuar");
+    let _ = std::io::stdin().read_line(&mut s);
+}
