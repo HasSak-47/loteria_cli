@@ -6,5 +6,6 @@ edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
-loteria_engine = {path = "../loteria_engine"}
+loteria_engine = { git= "https://github.com/HasSak-47/loteria_engine" }
 dirs = "5.0.1"
+image = "0.24.7"
