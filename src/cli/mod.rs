@@ -26,6 +26,7 @@ impl ActDebug for RandomMarkPair {}
 impl ActDebug for RandomCenterMarkPair {}
 impl ActDebug for UpperCenterMarkPair {}
 impl ActDebug for LowerCenterMarkPair {}
+impl ActDebug for SetCount {}
 
 fn str_to_ins(s: &str) -> Option<Box<dyn ActDebug>>{
     if s == "RandomMarkPair"{ Some(Box::new(RandomMarkPair)) }
@@ -43,6 +44,12 @@ fn str_to_ins(s: &str) -> Option<Box<dyn ActDebug>>{
                         usize::from_str_radix(divd[1], 10).unwrap(),
                         usize::from_str_radix(divd[2], 10).unwrap(),
                         u8::from_str_radix(divd[3], 10).unwrap()
+                        )))
+        }
+        else
+        if divd[0] == "SetCount" {
+            Some(Box::new(SetCount(
+                        usize::from_str_radix(divd[1], 10).unwrap(),
                         )))
         }
         else
@@ -77,7 +84,7 @@ fn get_instructions<S: AsRef<str>>(lines : &[S]) -> Vec<Box<dyn ActDebug>>{
 
 
 fn c_instructions() -> LoteriaResult<Vec<Box<dyn ActDebug>>>{
-    let mut file = std::fs::File::open(get_config_path()?).unwrap();
+    let mut file = std::fs::File::open(get_instruction_path()?).unwrap();
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer).unwrap();
 
@@ -97,17 +104,20 @@ pub fn run() -> LoteriaResult<Vec<Board>> {
         get_instructions(&args)
     };
 
+    if instructions.len() == 0{
+        return Ok(Vec::new());
+    }
+
     let mut board = BoardBuilder::new();
     for instruction in instructions{
         let _ = instruction.act_on(&mut board);
     }
-
-    Ok(board.generate_boards())
+    Ok(board.generate_tape().generate_boards())
 }
 
+#[test]
 mod test{
-
-    #[test]
+#[test]
 fn instruction_test(){
     use std::any::{TypeId, Any};
     use super::{get_instructions, ActDebug};
@@ -132,7 +142,7 @@ fn instruction_test(){
         Box::new(LowerCenterMarkPair),
     ];
 
-    let instructions = get_instructions(lines.clone());
+    let instructions = get_instructions(&lines);
     for ((instr, ex), line) in instructions.iter().zip(&expected).zip(&lines){
         let i_any = instr as &dyn Any;
         let ex_any = ex as &dyn Any;
