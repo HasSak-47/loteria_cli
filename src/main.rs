@@ -2,6 +2,7 @@ mod cli;
 mod installer;
 mod error;
 mod utils;
+mod config;
 
 use std::process::exit;
 
@@ -42,7 +43,8 @@ fn create_board(b: Board, cards: &Vec<RgbImage>) -> RgbImage{
 fn get_images() -> LoteriaResult<Vec<RgbImage>> {
     let mut v = Vec::new();
     for n in 0..54 {
-        let path = format!("{}/image-{n:03}.png", get_deck_path()?);
+        let path = format!("{}/out.image-{n:03}.png", get_deck_path()?);
+        println!("loading: {path}");
         v.push(open(path)?
             .into_rgb8())
     }
@@ -58,6 +60,7 @@ fn handle_error(_error: LoteriaError) {
             println!("error: {error}!"),
         _ => {},
     }
+    press_enter_to_continue();
     exit(-1);
 }
 
@@ -70,9 +73,9 @@ fn main(){
 
 fn panicked_main() -> LoteriaResult<()>{
     // instala
-    let _ = installer::install();
-
+    println!("no se generan!!");
     let images = get_images();
+    println!("no se generan!!");
     match &images {
         Err(_) => {
             return Err(LoteriaError::DeckNotFoundAtPath(get_deck_path()?))
@@ -80,10 +83,12 @@ fn panicked_main() -> LoteriaResult<()>{
         _ => {},
     }
 
+    println!("no se generan!!");
     let gen_boards = run()?;
     for b in &gen_boards {
         println!("{b:?}");
     }
+    println!("no se generan!!");
 
 
     let images = images.unwrap();
@@ -91,7 +96,8 @@ fn panicked_main() -> LoteriaResult<()>{
         return Err(LoteriaError::GenericError("No se encontro todas las imagenes necesarias".to_string()));
     }
     for (index, board) in gen_boards.into_iter().enumerate(){
-        let path = format!("{}/carta-{index:03}.png", get_board_path()?);
+        let path = format!("{}/out.image-{index:03}.png", get_board_path()?);
+        println!("saving {path}");
         create_board(board, &images)
             .save(path)
             .unwrap();
