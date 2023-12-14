@@ -12,7 +12,7 @@ use image::{open, RgbImage};
 use loteria_engine::engine::Board;
 use utils::get_board_path;
 
-use crate::utils::{press_enter_to_continue, get_deck_path};
+use crate::{utils::{press_enter_to_continue, get_deck_path}, installer::install};
 
 fn create_board(b: Board, cards: &Vec<RgbImage>) -> RgbImage{
     let width  = cards[0].width();
@@ -73,6 +73,7 @@ fn main(){
 
 fn panicked_main() -> LoteriaResult<()>{
     // instala
+    install()?;
     println!("no se generan!!");
     let images = get_images();
     println!("no se generan!!");
