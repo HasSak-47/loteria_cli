@@ -39,16 +39,16 @@ pub fn install() -> LoteriaResult<()>{
     let instruction = get_instruction_path()?;
 
     if !find_in(&desktop_entries, &instruction){
-        println!("created instruction: {}", instruction);
+        println!("created instruction file at: {}", instruction);
         let mut file = fs::File::create(instruction).unwrap();
         let _ = file.write_all(DEFAULT.as_bytes());
     }
     if !find_in(&picture_entries, &board){
-        println!("created board, {}", board);
+        println!("created board folder at: {}", board);
         let _ = fs::create_dir(board).unwrap();
     }
     if !find_in(&picture_entries, &deck){
-        println!("created deck {}", deck);
+        println!("created deck folder at: {}", deck);
         let _ = fs::create_dir(deck).unwrap();
     }
 
