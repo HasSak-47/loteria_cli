@@ -5,23 +5,22 @@ use crate::utils::{*};
 
 use std::fs::{self, DirEntry};
 use std::io::Write;
+use std::path::PathBuf;
 
 const VERSION : &str = env!("CARGO_PKG_VERSION");
 const FOLDER: &str = "grafica_loteria";
 
-fn get_entries(path: String) -> Vec<String> {
+fn get_entries(path: PathBuf) -> Vec<PathBuf> {
     fs::read_dir(path)
         .unwrap()
         .map(|x| x
-             .unwrap()
-             .path()
-             .into_os_string()
-             .into_string()
-             .unwrap())
+            .unwrap()
+            .path()
+        )
         .collect()
 }
 
-fn find_in(entries: &Vec<String>, entry: &String) -> bool{
+fn find_in(entries: &Vec<PathBuf>, entry: &PathBuf) -> bool{
     entries
         .iter()
         .find(|x| *x == entry )
@@ -29,8 +28,8 @@ fn find_in(entries: &Vec<String>, entry: &String) -> bool{
 }
 
 pub fn install() -> LoteriaResult<()>{
-    let mut desktop_entries = get_entries(get_path(desktop_dir)?);
-    let mut picture_entries = get_entries(get_path(picture_dir)?);
+    let mut desktop_entries = get_entries(desktop_dir().ok_or(LoteriaError::DirsError)?);
+    let mut picture_entries = get_entries(picture_dir().ok_or(LoteriaError::DirsError)?);
     desktop_entries.sort();
     picture_entries.sort();
 
@@ -39,16 +38,16 @@ pub fn install() -> LoteriaResult<()>{
     let instruction = get_instruction_path()?;
 
     if !find_in(&desktop_entries, &instruction){
-        println!("created instruction file at: {}", instruction);
+        println!("created instruction file at: {}", instruction.display());
         let mut file = fs::File::create(instruction).unwrap();
         let _ = file.write_all(DEFAULT.as_bytes());
     }
     if !find_in(&picture_entries, &board){
-        println!("created board folder at: {}", board);
+        println!("created board folder at: {}", board.display());
         let _ = fs::create_dir(board).unwrap();
     }
     if !find_in(&picture_entries, &deck){
-        println!("created deck folder at: {}", deck);
+        println!("created deck folder at: {}", deck.display());
         let _ = fs::create_dir(deck).unwrap();
     }
 
