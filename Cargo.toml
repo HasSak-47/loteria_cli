@@ -1,12 +1,18 @@
 [package]
 name = "loteria_cli"
-version = "0.2.0"
+version = "0.2.1"
 edition = "2021"
 # See more keys and their definitions at https://doc.rust-lang.org/cargo/reference/manifest.html
 
 [dependencies]
 dirs = "5.0.1"
 image = "0.24.7"
+anyhow = "1.0.81"
+thiserror = "1.0.58"
 
 [dependencies.loteria_engine]
-git = "https://github.com/HasSak-47/loteria_engine.git"
+path = "../loteria_engine"
+
+[dependencies.clap]
+version = "4.0.0"
+features = ["derive"]

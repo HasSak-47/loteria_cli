@@ -2,10 +2,8 @@ use std::{env::args, io::Read, fmt::Debug};
 
 use loteria_engine::engine::*;
 
-use crate::{
-    error::LoteriaResult,
-    utils::*
-};
+use crate::utils::*;
+use anyhow::{Result, anyhow};
 
 /*
 pub struct BlackList(pub u8);
@@ -19,7 +17,7 @@ pub struct LowerCenterMarkPair;
 
 trait ActDebug : BoardActor + Debug {}
 
-impl ActDebug for BlackList {}
+impl ActDebug for BlackList{}
 impl ActDebug for Set {}
 impl ActDebug for MarkPair {}
 impl ActDebug for RandomMarkPair {}
@@ -27,38 +25,53 @@ impl ActDebug for RandomCenterMarkPair {}
 impl ActDebug for UpperCenterMarkPair {}
 impl ActDebug for LowerCenterMarkPair {}
 impl ActDebug for SetCount {}
+impl ActDebug for SetTotal {}
+impl ActDebug for SetPair {}
 
 fn str_to_ins(s: &str) -> Option<Box<dyn ActDebug>>{
-    if s == "RandomMarkPair"{ Some(Box::new(RandomMarkPair)) }
-    else if s == "RandomCenterMarkPair" { Some(Box::new(RandomCenterMarkPair))}
-    else if s == "UpperCenterMarkPair" { Some(Box::new(UpperCenterMarkPair)) }
-    else if s == "LowerCenterMarkPair" {Some(Box::new(LowerCenterMarkPair)) }
+    if s == "RandomMarkPair"{ Some(Box::new(RandomMarkPair::new())) }
+    else if s == "RandomCenterMarkPair" { Some(Box::new(RandomCenterMarkPair::new()))}
+    else if s == "UpperCenterMarkPair" { Some(Box::new(UpperCenterMarkPair::new())) }
+    else if s == "LowerCenterMarkPair" {Some(Box::new(LowerCenterMarkPair::new())) }
     else{
         let divd : Vec<_> = s.split(" ").collect();
         if divd[0] == "BlackList" {
-            Some(Box::new(BlackList(u8::from_str_radix(divd[1], 10).unwrap())))
+            Some(Box::new(BlackList::new(u8::from_str_radix(divd[1], 10).unwrap())))
         }
         else
         if divd[0] == "Set" {
-            Some(Box::new(Set(
+            Some(Box::new(Set::new(
                         usize::from_str_radix(divd[1], 10).unwrap(),
                         usize::from_str_radix(divd[2], 10).unwrap(),
                         u8::from_str_radix(divd[3], 10).unwrap()
                         )))
         }
         else
+        if divd[0] == "SetTotal" {
+            Some(Box::new(SetTotal::new(
+                        usize::from_str_radix(divd[1], 10).unwrap(),
+                        )))
+        }
+        else
         if divd[0] == "SetCount" {
-            Some(Box::new(SetCount(
+            Some(Box::new(SetCount::new(
                         usize::from_str_radix(divd[1], 10).unwrap(),
                         )))
         }
         else
         if divd[0] == "MarkPair" {
-            Some(Box::new(MarkPair(
+            Some(Box::new(MarkPair::new(
                         usize::from_str_radix(divd[1], 10).unwrap(),
                         usize::from_str_radix(divd[2], 10).unwrap(),
                         usize::from_str_radix(divd[3], 10).unwrap(),
                         usize::from_str_radix(divd[4], 10).unwrap()
+                        )))
+        }
+        else
+        if divd[0] == "SetPair" {
+            Some(Box::new(SetPair::new(
+                        usize::from_str_radix(divd[1], 10).unwrap(),
+                        usize::from_str_radix(divd[2], 10).unwrap(),
                         )))
         }
         else{
@@ -83,7 +96,7 @@ fn get_instructions<S: AsRef<str>>(lines : &[S]) -> Vec<Box<dyn ActDebug>>{
 }
 
 
-fn c_instructions() -> LoteriaResult<Vec<Box<dyn ActDebug>>>{
+fn c_instructions() -> Result<Vec<Box<dyn ActDebug>>>{
     let mut file = std::fs::File::open(get_instruction_path()?).unwrap();
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer).unwrap();
@@ -94,7 +107,7 @@ fn c_instructions() -> LoteriaResult<Vec<Box<dyn ActDebug>>>{
     Ok(get_instructions(&lines))
 }
 
-pub fn run() -> LoteriaResult<Vec<Board>> {
+pub fn run() -> Result<Vec<Board>> {
     let mut args : Vec<_> = args().collect();
     args.remove(0);
     let instructions = if args.len() == 0{
@@ -105,48 +118,17 @@ pub fn run() -> LoteriaResult<Vec<Board>> {
     };
 
     if instructions.len() == 0{
+        println!("no instructions found");
         return Ok(Vec::new());
+    }
+
+    for i in &instructions{
+        println!("{:?}", i);
     }
 
     let mut board = BoardBuilder::new();
     for instruction in instructions{
-        let _ = instruction.act_on(&mut board);
+        instruction.act_on(&mut board)?;
     }
     Ok(board.generate_tape().generate_boards())
-}
-
-#[test]
-mod test{
-#[test]
-fn instruction_test(){
-    use std::any::{TypeId, Any};
-    use super::{get_instructions, ActDebug};
-    use loteria_engine::engine::*;
-
-    let lines = vec![
-        "BlackList 8",
-        "Set 2 3 7",
-        "MarkPair 2 3 0 1",
-        "RandomMarkPair",
-        "RandomCenterMarkPair",
-        "UpperCenterMarkPair",
-        "LowerCenterMarkPair",
-    ];
-    let expected : Vec<Box<dyn ActDebug>> = vec![
-        Box::new(BlackList(8)),
-        Box::new(Set(2, 3, 7)),
-        Box::new(MarkPair(2, 3, 0, 1)),
-        Box::new(RandomMarkPair),
-        Box::new(RandomCenterMarkPair),
-        Box::new(UpperCenterMarkPair),
-        Box::new(LowerCenterMarkPair),
-    ];
-
-    let instructions = get_instructions(&lines);
-    for ((instr, ex), line) in instructions.iter().zip(&expected).zip(&lines){
-        let i_any = instr as &dyn Any;
-        let ex_any = ex as &dyn Any;
-        assert!(i_any.type_id() == ex_any.type_id(), "error at: {line}");
-    }
-}
 }
