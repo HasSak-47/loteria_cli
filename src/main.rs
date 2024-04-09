@@ -1,18 +1,18 @@
 mod cli;
 mod installer;
-mod error;
 mod utils;
 mod config;
 
 use std::process::exit;
 
 use cli::run;
-use error::{LoteriaResult, LoteriaError};
 use image::{open, RgbImage};
 use loteria_engine::engine::Board;
 use utils::get_board_path;
 
 use crate::{utils::{press_enter_to_continue, get_deck_path, Append}, installer::install};
+
+use anyhow::{anyhow, Result};
 
 fn create_board(b: Board, cards: &Vec<RgbImage>) -> RgbImage{
     let width  = cards[0].width();
@@ -40,7 +40,7 @@ fn create_board(b: Board, cards: &Vec<RgbImage>) -> RgbImage{
 
 
 
-fn get_images() -> LoteriaResult<Vec<RgbImage>> {
+fn get_images() -> Result<Vec<RgbImage>> {
     let mut v = Vec::new();
     for n in 0..54 {
         let mut path = get_deck_path()?.append(format!("image-{n:03}"));
@@ -52,27 +52,7 @@ fn get_images() -> LoteriaResult<Vec<RgbImage>> {
     Ok(v)
 }
 
-fn handle_error(_error: LoteriaError) {
-    use LoteriaError as LT;
-    match _error{
-        LT::DeckNotFoundAtPath(path) => 
-            println!("didn't found cards at: {path}"),
-        LT::GenericError(error) => 
-            println!("error: {error}!"),
-        _ => {},
-    }
-    press_enter_to_continue();
-    exit(-1);
-}
-
-fn main(){
-    match panicked_main(){
-        Ok(_) => {},
-        Err(err) => handle_error(err),
-    }
-}
-
-fn panicked_main() -> LoteriaResult<()>{
+fn main() -> Result<()>{
     // instala
     println!("making sure stuff is installed");
     install()?;
@@ -80,7 +60,7 @@ fn panicked_main() -> LoteriaResult<()>{
     let images = get_images();
     match &images {
         Err(_) => {
-            return Err(LoteriaError::DeckNotFoundAtPath(
+            return Err(anyhow!( "Not found at: {}", 
                 get_deck_path()?
                     .to_str()
                     .unwrap()
@@ -92,17 +72,18 @@ fn panicked_main() -> LoteriaResult<()>{
 
     println!("generating boards");
     let gen_boards = run()?;
+    println!("boards generated: {}", gen_boards.len());
     for b in &gen_boards {
         println!("{b:?}");
     }
 
     let images = images.unwrap();
     if images.len() != 54{
-        return Err(LoteriaError::GenericError("Not enough cards found!".to_string()));
+        return Err(anyhow!("Not enough cards found!"));
     }
     for (index, board) in gen_boards.into_iter().enumerate(){
-        let mut path = get_board_path()?.append(format!("out.image-{index:03}"));
-        path.set_extension(".png");
+        let mut path = get_board_path()?.append(format!("board-{index:03}"));
+        path.set_extension("png");
         println!("saving to: {}", path.display());
         create_board(board, &images)
             .save(path)

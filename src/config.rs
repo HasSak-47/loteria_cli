@@ -1,12 +1,11 @@
 use std::path::PathBuf;
+use anyhow::{Result, anyhow};
 
 use dirs::config_dir;
 
-use crate::error::{LoteriaError, LoteriaResult};
-
-fn get_config_path() -> LoteriaResult<PathBuf>{
+fn get_config_path() -> Result<PathBuf>{
     let mut path = config_dir()
-        .ok_or(LoteriaError::DirsError)?;
+        .ok_or(anyhow!("config not found"))?;
 
     path.push("loteria_config");
     path.set_extension("txt");

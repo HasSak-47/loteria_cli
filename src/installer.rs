@@ -1,9 +1,9 @@
 use dirs::{desktop_dir, picture_dir};
+use anyhow::{Result, anyhow};
 
-use crate::error::{LoteriaError, LoteriaResult};
 use crate::utils::{*};
 
-use std::fs::{self, DirEntry};
+use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
 
@@ -27,9 +27,9 @@ fn find_in(entries: &Vec<PathBuf>, entry: &PathBuf) -> bool{
         .is_some()
 }
 
-pub fn install() -> LoteriaResult<()>{
-    let mut desktop_entries = get_entries(desktop_dir().ok_or(LoteriaError::DirsError)?);
-    let mut picture_entries = get_entries(picture_dir().ok_or(LoteriaError::DirsError)?);
+pub fn install() -> Result<()>{
+    let mut desktop_entries = get_entries(desktop_dir().ok_or(anyhow!("desktop not found"))?);
+    let mut picture_entries = get_entries(picture_dir().ok_or(anyhow!("pictures not found"))?);
     desktop_entries.sort();
     picture_entries.sort();
 
