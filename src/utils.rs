@@ -34,9 +34,3 @@ pub const DEFAULT: &str =
 "SetCount 8
 RandomCenterMarkPair
 ";
-
-pub fn press_enter_to_continue() {
-    let mut s = String::new();
-    println!("presione enter para continuar");
-    let _ = std::io::stdin().read_line(&mut s);
-}
