@@ -1,14 +1,10 @@
 use dirs::{desktop_dir, picture_dir};
 use anyhow::{Result, anyhow};
-
 use crate::utils::{*};
 
 use std::fs;
 use std::io::Write;
 use std::path::PathBuf;
-
-const VERSION : &str = env!("CARGO_PKG_VERSION");
-const FOLDER: &str = "grafica_loteria";
 
 fn get_entries(path: PathBuf) -> Vec<PathBuf> {
     fs::read_dir(path)

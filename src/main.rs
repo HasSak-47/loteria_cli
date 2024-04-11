@@ -3,16 +3,19 @@ mod installer;
 mod utils;
 mod config;
 
-use std::process::exit;
+use std::{fs::read_dir, path::PathBuf};
 
-use cli::run;
+#[allow(unused_imports)]
+use anyhow::{anyhow, Result};
+
+use cli::{c_instructions, get_instructions, run};
 use image::{open, RgbImage};
 use loteria_engine::engine::Board;
-use utils::get_board_path;
 
-use crate::{utils::{press_enter_to_continue, get_deck_path, Append}, installer::install};
-
-use anyhow::{anyhow, Result};
+use crate::{
+    utils::{get_deck_path, get_board_path},
+    installer::install
+};
 
 fn create_board(b: Board, cards: &Vec<RgbImage>) -> RgbImage{
     let width  = cards[0].width();
@@ -29,8 +32,7 @@ fn create_board(b: Board, cards: &Vec<RgbImage>) -> RgbImage{
         for iijj in 0..len{
             let ii = iijj % width;
             let jj = iijj / width;
-
-            let card_px = cards[card].get_pixel(ii, jj);
+let card_px = cards[card].get_pixel(ii, jj);
             *img.get_pixel_mut(i * width + ii, j * height + jj) = *card_px;
         }
     }
@@ -38,58 +40,110 @@ fn create_board(b: Board, cards: &Vec<RgbImage>) -> RgbImage{
     img
 }
 
-
-
-fn get_images() -> Result<Vec<RgbImage>> {
+fn get_images(path: PathBuf) -> Result<Vec<RgbImage>> {
     let mut v = Vec::new();
-    for n in 0..54 {
-        let mut path = get_deck_path()?.append(format!("image-{n:03}"));
-        path.set_extension("png");
-        println!("loading: {}", path.display());
-        v.push(open(path)?
-            .into_rgb8())
+    let path = get_deck_path()?;
+    let d = read_dir(path).unwrap();
+    // sort by name
+    let mut d = d.collect::<Vec<_>>();
+    d.sort_by(|a, b| a.as_ref().unwrap().path().cmp(&b.as_ref().unwrap().path()));
+
+    for en in d{
+        let path = en.unwrap().path();
+        println!("opening: {}", path.display());
+        v.push(open(path).unwrap().into_rgb8());
     }
     Ok(v)
 }
 
-fn main() -> Result<()>{
-    // instala
-    println!("making sure stuff is installed");
-    install()?;
-    println!("getting images...");
-    let images = get_images();
-    match &images {
-        Err(_) => {
-            return Err(anyhow!( "Not found at: {}", 
-                get_deck_path()?
-                    .to_str()
-                    .unwrap()
-                    .to_string()
-            ))
+use clap::{Parser, Subcommand};
+
+#[derive(Parser, Debug)]
+#[command(version = "0.2", author = "Daniel Alanis")]
+struct Opts {
+    #[clap(short, long)]
+    verbose: bool,
+
+    #[clap(short, long)]
+    debug: bool,
+
+    #[clap(subcommand)]
+    subcmd: SubCommands,
+}
+
+
+#[derive(Subcommand, Debug)]
+enum SubCommands{
+    Update,
+    Run(RunOpts),
+}
+
+#[derive(Subcommand, Debug)]
+enum Instructions{
+    File{ path: PathBuf },
+    Args{ args: Vec<String> },
+}
+
+#[derive(Parser, Debug)]
+struct RunOpts{
+        #[clap(short, long)]
+        output: Option<PathBuf>,
+        #[clap(short, long)]
+        deck: Option<PathBuf>,
+
+        #[clap(subcommand)]
+        inst: Instructions,
+}
+
+fn run_generator(mut opts: RunOpts) -> Result<()>{
+    let images = get_images(opts.deck.unwrap())?;
+
+    let inst = match opts.inst{
+        Instructions::File{path} => {
+            c_instructions(path)?
         },
-        _ => {},
+        Instructions::Args{args} => {
+            get_instructions(&args)
+        }
+    };
+
+    let gen_boards = run(inst)?;
+    for (i, b) in gen_boards.iter().enumerate() {
+        println!("Board {i:03}: {b:?}");
     }
 
-    println!("generating boards");
-    let gen_boards = run()?;
-    println!("boards generated: {}", gen_boards.len());
-    for b in &gen_boards {
-        println!("{b:?}");
-    }
-
-    let images = images.unwrap();
-    if images.len() != 54{
-        return Err(anyhow!("Not enough cards found!"));
-    }
+    let out_path = opts.output.take().unwrap();
     for (index, board) in gen_boards.into_iter().enumerate(){
-        let mut path = get_board_path()?.append(format!("board-{index:03}"));
+        let mut path = out_path.clone();
+        path.push(format!("image-{index:03}"));
         path.set_extension("png");
         println!("saving to: {}", path.display());
         create_board(board, &images)
-            .save(path)
-            .unwrap();
+            .save(path)?;
+    } 
+
+    Ok(())
+}
+
+fn main() -> Result<()>{
+    let mut opts = Opts::parse();
+
+    if let SubCommands::Run(ref mut opts) = &mut opts.subcmd{
+        if opts.output.is_none(){
+            opts.output = Some(get_board_path()?);
+        }
+
+        if opts.deck.is_none(){
+            opts.deck = Some(get_deck_path()?);
+        }
     }
-
-
+    match opts.subcmd{
+        SubCommands::Update => {
+            install()?;
+        },
+        SubCommands::Run(opts) => {
+            run_generator(opts)?;
+        }
+    }
     Ok(())
 }

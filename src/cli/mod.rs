@@ -1,21 +1,9 @@
-use std::{env::args, io::Read, fmt::Debug};
+use std::{fmt::Debug, io::Read, path::PathBuf};
 
 use loteria_engine::engine::*;
-
-use crate::utils::*;
 use anyhow::{Result, anyhow};
 
-/*
-pub struct BlackList(pub u8);
-pub struct Set(pub usize, pub usize, pub u8);
-pub struct MarkPair(pub usize, pub usize, pub usize, pub usize);
-pub struct RandomMarkPair;
-pub struct RandomCenterMarkPair;
-pub struct UpperCenterMarkPair;
-pub struct LowerCenterMarkPair;
- */
-
-trait ActDebug : BoardActor + Debug {}
+pub trait ActDebug : BoardActor + Debug {}
 
 impl ActDebug for BlackList{}
 impl ActDebug for Set {}
@@ -81,7 +69,7 @@ fn str_to_ins(s: &str) -> Option<Box<dyn ActDebug>>{
 }
 
 
-fn get_instructions<S: AsRef<str>>(lines : &[S]) -> Vec<Box<dyn ActDebug>>{
+pub fn get_instructions<S: AsRef<str>>(lines : &[S]) -> Vec<Box<dyn ActDebug>>{
     let mut v = Vec::new();
 
     for line in lines{
@@ -95,39 +83,28 @@ fn get_instructions<S: AsRef<str>>(lines : &[S]) -> Vec<Box<dyn ActDebug>>{
     v
 }
 
-
-fn c_instructions() -> Result<Vec<Box<dyn ActDebug>>>{
-    let mut file = std::fs::File::open(get_instruction_path()?).unwrap();
+pub fn c_instructions(path: PathBuf) -> Result<Vec<Box<dyn ActDebug>>>{
+    let mut file = std::fs::File::open(path)?;
     let mut buffer = Vec::new();
-    file.read_to_end(&mut buffer).unwrap();
+    file.read_to_end(&mut buffer)?;
 
-    let text = String::from_utf8(buffer).unwrap();
+    let text = String::from_utf8(buffer)?;
     let lines : Vec<_> = text.lines().collect();
 
     Ok(get_instructions(&lines))
 }
 
-pub fn run() -> Result<Vec<Board>> {
-    let mut args : Vec<_> = args().collect();
-    args.remove(0);
-    let instructions = if args.len() == 0{
-        c_instructions()?
-    }
-    else{
-        get_instructions(&args)
-    };
-
-    if instructions.len() == 0{
-        println!("no instructions found");
-        return Ok(Vec::new());
+pub fn run(inst: Vec<Box<dyn ActDebug>>) -> Result<Vec<Board>> {
+    if inst.len() == 0{
+        return Err(anyhow!("no instructions where provided"));
     }
 
-    for i in &instructions{
+    for i in &inst{
         println!("{:?}", i);
     }
 
     let mut board = BoardBuilder::new();
-    for instruction in instructions{
+    for instruction in inst{
         instruction.act_on(&mut board)?;
     }
     Ok(board.generate_tape().generate_boards())
