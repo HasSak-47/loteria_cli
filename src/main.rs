@@ -1,7 +1,5 @@
 mod cli;
-mod installer;
 mod utils;
-mod config;
 
 use std::{fs::read_dir, path::PathBuf};
 
@@ -12,10 +10,7 @@ use cli::{c_instructions, get_instructions, run};
 use image::{open, RgbImage};
 use loteria_engine::engine::Board;
 
-use crate::{
-    utils::{get_deck_path, get_board_path},
-    installer::install
-};
+use crate::utils::{get_deck_path, get_board_path};
 
 fn create_board(b: Board, cards: &Vec<RgbImage>) -> RgbImage{
     let width  = cards[0].width();
@@ -32,7 +27,7 @@ fn create_board(b: Board, cards: &Vec<RgbImage>) -> RgbImage{
         for iijj in 0..len{
             let ii = iijj % width;
             let jj = iijj / width;
-let card_px = cards[card].get_pixel(ii, jj);
+            let card_px = cards[card].get_pixel(ii, jj);
             *img.get_pixel_mut(i * width + ii, j * height + jj) = *card_px;
         }
     }
@@ -42,7 +37,6 @@ let card_px = cards[card].get_pixel(ii, jj);
 
 fn get_images(path: PathBuf) -> Result<Vec<RgbImage>> {
     let mut v = Vec::new();
-    let path = get_deck_path()?;
     let d = read_dir(path).unwrap();
     // sort by name
     let mut d = d.collect::<Vec<_>>();
@@ -96,7 +90,6 @@ struct RunOpts{
 }
 
 fn run_generator(mut opts: RunOpts) -> Result<()>{
-    let images = get_images(opts.deck.unwrap())?;
 
     let inst = match opts.inst{
         Instructions::File{path} => {
@@ -112,6 +105,7 @@ fn run_generator(mut opts: RunOpts) -> Result<()>{
         println!("Board {i:03}: {b:?}");
     }
 
+    let images = get_images(opts.deck.unwrap())?;
     let out_path = opts.output.take().unwrap();
     for (index, board) in gen_boards.into_iter().enumerate(){
         let mut path = out_path.clone();
@@ -124,6 +118,35 @@ fn run_generator(mut opts: RunOpts) -> Result<()>{
 
     Ok(())
 }
+
+#[cfg(target_os = "windows")]
+const STABLE_URL: &str = "...";
+
+#[cfg(target_os = "windows")]
+fn update() -> Result<()>{
+    use std::process::Stdio;
+
+    let mut cmd = std::process::Command::new("PowerShell.exe");
+    cmd.stdin(Stdio::piped());
+    cmd.stdout(Stdio::piped());
+    cmd.stderr(Stdio::piped());
+    let mut spawn = cmd.spawn()?;
+    let stdin = spawn.stdin.as_mut().unwrap();
+    spawn.wait()?;
+    Ok(())
+}
+
+#[cfg(target_os = "linux")]
+const STABLE_URL: &str = "...";
+
+#[cfg(target_os = "linux")]
+fn update() -> Result<()>{
+    let mut cmd = std::process::Command::new("wget");
+    cmd.arg(STABLE_URL);
+    let _ = cmd.output()?;
+    Ok(())
+}
+
 
 fn main() -> Result<()>{
     let mut opts = Opts::parse();
@@ -139,7 +162,7 @@ fn main() -> Result<()>{
     }
     match opts.subcmd{
         SubCommands::Update => {
-            install()?;
+            update()?;
         },
         SubCommands::Run(opts) => {
             run_generator(opts)?;
