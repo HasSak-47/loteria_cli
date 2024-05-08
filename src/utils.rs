@@ -30,8 +30,3 @@ pub fn get_instruction_path() -> Result<PathBuf>{
     p.set_extension("txt");
     Ok(p)
 }
-
-pub const DEFAULT: &str =
-"SetCount 8
-RandomCenterMarkPair
-";
