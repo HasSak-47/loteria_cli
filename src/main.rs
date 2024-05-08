@@ -96,7 +96,10 @@ fn make_run_opts(opts: Opts) -> Result<RunOpts>{
     let inst = match opts.inst{
         Some(inst) => inst,
         None => {
-            let path = get_instruction_path()?;
+            let path = get_instruction_path(opts.debug)?;
+            if !path.exists(){
+                return Err(anyhow!("instruction path ({}) does not exist!", path.display()));
+            }
             Instructions::File{ path }
         }
     };
@@ -147,41 +150,22 @@ fn run_generator(opts: RunOpts) -> Result<()>{
     Ok(())
 }
 
-const STABLE_URL: &str = "...";
-
-fn update() -> Result<()>{
-    use std::process::Stdio;
-
-    let mut cmd = std::process::Command::new("PowerShell.exe");
-    cmd.stdin(Stdio::piped());
-    cmd.stdout(Stdio::piped());
-    cmd.stderr(Stdio::piped());
-    let mut spawn = cmd.spawn()?;
-    let stdin = spawn.stdin.as_mut().unwrap();
-    stdin.write(&format!("wget {} -OutFile loteria_cli.exe\n", STABLE_URL).as_bytes())?;
-    spawn.wait()?;
-
-    Ok(())
-}
-
-
 fn main() -> Result<()>{
     let mut opts = Opts::parse();
 
     if opts.update{
-        return update();
+        return updater::update();
     }
 
     if opts.output.is_none(){
-        opts.output = Some(get_board_path()?);
+        opts.output = Some(get_board_path(opts.debug)?);
     }
 
     if opts.deck.is_none(){
-        opts.deck = Some(get_deck_path()?);
+        opts.deck = Some(get_deck_path(opts.debug)?);
     }
 
     let opts = make_run_opts(opts)?;
-
     run_generator(opts)?;
     Ok(())
 }

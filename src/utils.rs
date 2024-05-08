@@ -17,16 +17,28 @@ impl<T> Append<T> for PathBuf where T : AsRef<Path> + Sized{
     fn append(mut self, v: T) -> Self { self.push(v); self }
 }
 
-pub fn get_board_path() -> Result<PathBuf>{
-    Ok(picture_dir().ok_or(anyhow!("board path not found"))?.append(BOARD_NAME))
+pub fn get_board_path(debug: bool) -> Result<PathBuf>{
+    let path = picture_dir().ok_or(anyhow!("Pictures not found!"))?;
+    if debug{
+        println!("using default board path {}", path.display());
+    }
+    Ok(path.append(BOARD_NAME))
 }
 
-pub fn get_deck_path() -> Result<PathBuf>{
+pub fn get_deck_path(debug: bool) -> Result<PathBuf>{
+    let path = picture_dir().ok_or(anyhow!("Pictures not found!"))?;
+    if debug{
+        println!("using default deck path {}", path.display());
+    }
     Ok(picture_dir().ok_or(anyhow!("deck path not found"))?.append(DECK_NAME))
 }
 
-pub fn get_instruction_path() -> Result<PathBuf>{
-    let mut p = desktop_dir().ok_or(anyhow!("instructions not found"))?.append(INSTUCTIONS_NAME);
+pub fn get_instruction_path(debug: bool) -> Result<PathBuf>{
+    let path = desktop_dir().ok_or(anyhow!("Desktop not found!"))?;
+    if debug{
+        println!("using default instruction path {}", path.display());
+    }
+    let mut p = path.append(INSTUCTIONS_NAME);
     p.set_extension("txt");
     Ok(p)
 }
