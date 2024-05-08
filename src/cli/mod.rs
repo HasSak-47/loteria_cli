@@ -84,7 +84,7 @@ pub fn get_instructions<S: AsRef<str>>(lines : &[S]) -> Vec<Box<dyn ActDebug>>{
 }
 
 pub fn c_instructions(path: PathBuf) -> Result<Vec<Box<dyn ActDebug>>>{
-    let mut file = std::fs::File::open(path)?;
+    let mut file = std::fs::File::open(path).unwrap();
     let mut buffer = Vec::new();
     file.read_to_end(&mut buffer)?;
 

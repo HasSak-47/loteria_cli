@@ -3,7 +3,7 @@ use std::io::Write;
 
 const STABLE_URL: &str = "...";
 
-fn update() -> Result<()>{
+pub fn update() -> Result<()>{
     use std::process::Stdio;
 
     let mut cmd = std::process::Command::new("PowerShell.exe");
