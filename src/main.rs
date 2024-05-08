@@ -1,14 +1,16 @@
 mod cli;
 mod utils;
+mod updater;
 
-use std::{fs::read_dir, path::PathBuf};
+use std::{fs::read_dir, io::Write, path::PathBuf};
 
 #[allow(unused_imports)]
 use anyhow::{anyhow, Result};
 
-use cli::{c_instructions, get_instructions, run};
+use cli::{c_instructions, get_instructions, run, ActDebug};
 use image::{open, RgbImage};
 use loteria_engine::engine::Board;
+use utils::get_instruction_path;
 
 use crate::utils::{get_deck_path, get_board_path};
 
@@ -53,60 +55,86 @@ fn get_images(path: PathBuf) -> Result<Vec<RgbImage>> {
 use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
-#[command(version = "0.2", author = "Daniel Alanis")]
+#[command(version = "0.3", author = "Daniel Alanis")]
 struct Opts {
     #[clap(short, long)]
     verbose: bool,
 
-    #[clap(short, long)]
+    #[clap(long)]
+    update: bool,
+
+    #[clap(long)]
     debug: bool,
 
+    #[clap(long)]
+    override_config: Option<String>,
+
+    #[clap(short, long)]
+    output: Option<PathBuf>,
+
+    #[clap(short, long)]
+    deck: Option<PathBuf>,
+
     #[clap(subcommand)]
-    subcmd: SubCommands,
+    inst: Option<Instructions>,
 }
 
-
-#[derive(Subcommand, Debug)]
-enum SubCommands{
-    Update,
-    Run(RunOpts),
-}
-
-#[derive(Subcommand, Debug)]
+#[derive(Subcommand, Debug, Clone)]
 enum Instructions{
     File{ path: PathBuf },
     Args{ args: Vec<String> },
 }
 
-#[derive(Parser, Debug)]
 struct RunOpts{
-        #[clap(short, long)]
-        output: Option<PathBuf>,
-        #[clap(short, long)]
-        deck: Option<PathBuf>,
-
-        #[clap(subcommand)]
-        inst: Instructions,
+    override_config: String,
+    output         : PathBuf,
+    deck           : PathBuf,
+    inst           : Vec<Box<dyn ActDebug>>,
 }
 
-fn run_generator(mut opts: RunOpts) -> Result<()>{
-
+fn make_run_opts(opts: Opts) -> Result<RunOpts>{
     let inst = match opts.inst{
-        Instructions::File{path} => {
-            c_instructions(path)?
-        },
-        Instructions::Args{args} => {
-            get_instructions(&args)
+        Some(inst) => inst,
+        None => {
+            let path = get_instruction_path()?;
+            Instructions::File{ path }
         }
     };
 
-    let gen_boards = run(inst)?;
+    let inst = make_instructions(inst)?;
+    let override_config = opts.override_config.unwrap_or("".to_string());
+    let output = opts.output.unwrap();
+    let deck = opts.deck.unwrap();
+
+    Ok(RunOpts{
+        override_config,
+        output,
+        deck,
+        inst,
+    })
+}
+
+fn make_instructions(inst: Instructions) -> Result<Vec<Box<dyn ActDebug>>>{
+    match inst{
+        Instructions::File{ path } => {
+            let inst = c_instructions(path)?;
+            Ok(inst)
+        },
+        Instructions::Args{ args } => {
+            let inst = get_instructions(&args);
+            Ok(inst)
+        }
+    }
+}
+
+fn run_generator(opts: RunOpts) -> Result<()>{
+    let gen_boards = run(opts.inst)?;
     for (i, b) in gen_boards.iter().enumerate() {
         println!("Board {i:03}: {b:?}");
     }
 
-    let images = get_images(opts.deck.unwrap())?;
-    let out_path = opts.output.take().unwrap();
+    let images = get_images(opts.deck)?;
+    let out_path = opts.output;
     for (index, board) in gen_boards.into_iter().enumerate(){
         let mut path = out_path.clone();
         path.push(format!("image-{index:03}"));
@@ -119,10 +147,8 @@ fn run_generator(mut opts: RunOpts) -> Result<()>{
     Ok(())
 }
 
-#[cfg(target_os = "windows")]
 const STABLE_URL: &str = "...";
 
-#[cfg(target_os = "windows")]
 fn update() -> Result<()>{
     use std::process::Stdio;
 
@@ -132,18 +158,9 @@ fn update() -> Result<()>{
     cmd.stderr(Stdio::piped());
     let mut spawn = cmd.spawn()?;
     let stdin = spawn.stdin.as_mut().unwrap();
+    stdin.write(&format!("wget {} -OutFile loteria_cli.exe\n", STABLE_URL).as_bytes())?;
     spawn.wait()?;
-    Ok(())
-}
 
-#[cfg(target_os = "linux")]
-const STABLE_URL: &str = "...";
-
-#[cfg(target_os = "linux")]
-fn update() -> Result<()>{
-    let mut cmd = std::process::Command::new("wget");
-    cmd.arg(STABLE_URL);
-    let _ = cmd.output()?;
     Ok(())
 }
 
@@ -151,22 +168,20 @@ fn update() -> Result<()>{
 fn main() -> Result<()>{
     let mut opts = Opts::parse();
 
-    if let SubCommands::Run(ref mut opts) = &mut opts.subcmd{
-        if opts.output.is_none(){
-            opts.output = Some(get_board_path()?);
-        }
+    if opts.update{
+        return update();
+    }
 
-        if opts.deck.is_none(){
-            opts.deck = Some(get_deck_path()?);
-        }
+    if opts.output.is_none(){
+        opts.output = Some(get_board_path()?);
     }
-    match opts.subcmd{
-        SubCommands::Update => {
-            update()?;
-        },
-        SubCommands::Run(opts) => {
-            run_generator(opts)?;
-        }
+
+    if opts.deck.is_none(){
+        opts.deck = Some(get_deck_path()?);
     }
+
+    let opts = make_run_opts(opts)?;
+
+    run_generator(opts)?;
     Ok(())
 }
