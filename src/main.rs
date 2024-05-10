@@ -12,7 +12,7 @@ use image::{open, RgbImage};
 use loteria_engine::engine::Board;
 use utils::get_instruction_path;
 
-use crate::utils::{get_deck_path, get_board_path};
+use crate::utils::{get_board_path, get_deck_path, wait_enter};
 
 fn create_board(b: Board, cards: &Vec<RgbImage>) -> RgbImage{
     let width  = cards[0].width();
@@ -86,13 +86,18 @@ enum Instructions{
 }
 
 struct RunOpts{
-    override_config: String,
+    _override_config: String,
     output         : PathBuf,
     deck           : PathBuf,
     inst           : Vec<Box<dyn ActDebug>>,
 }
 
-fn make_run_opts(opts: Opts) -> Result<RunOpts>{
+struct DataOpts{
+    verbose: bool,
+    debug: bool,
+}
+
+fn split_opts(opts: Opts) -> Result<(RunOpts, DataOpts)>{
     let inst = match opts.inst{
         Some(inst) => inst,
         None => {
@@ -109,12 +114,18 @@ fn make_run_opts(opts: Opts) -> Result<RunOpts>{
     let output = opts.output.unwrap();
     let deck = opts.deck.unwrap();
 
-    Ok(RunOpts{
-        override_config,
-        output,
-        deck,
-        inst,
-    })
+    Ok((
+        RunOpts{
+            override_config,
+            output,
+            deck,
+            inst,
+        },
+        DataOpts{
+            verbose: opts.verbose,
+            debug: opts.debug,
+        }
+    ))
 }
 
 fn make_instructions(inst: Instructions) -> Result<Vec<Box<dyn ActDebug>>>{
@@ -130,13 +141,25 @@ fn make_instructions(inst: Instructions) -> Result<Vec<Box<dyn ActDebug>>>{
     }
 }
 
-fn run_generator(opts: RunOpts) -> Result<()>{
+fn run_generator(opts: RunOpts, data: DataOpts) -> Result<()>{
     let gen_boards = run(opts.inst)?;
+    let card_count = gen_boards.get_count();
+    let gen_boards = gen_boards.generate_boards();
     for (i, b) in gen_boards.iter().enumerate() {
         println!("Board {i:03}: {b:?}");
     }
 
     let images = get_images(opts.deck)?;
+    if images.len() != card_count{
+        let error = format!("deck count ({}) does not match board count ({})", images.len(), card_count);
+        if data.verbose{
+            eprintln!("{}", error);
+            if data.debug{
+                wait_enter();
+            }
+        }
+        return Err(anyhow!("{}", error));
+    }
     let out_path = opts.output;
     for (index, board) in gen_boards.into_iter().enumerate(){
         let mut path = out_path.clone();
@@ -165,7 +188,7 @@ fn main() -> Result<()>{
         opts.deck = Some(get_deck_path(opts.debug)?);
     }
 
-    let opts = make_run_opts(opts)?;
-    run_generator(opts)?;
+    let (run, data) = split_opts(opts)?;
+    run_generator(run, data)?;
     Ok(())
 }

@@ -1,4 +1,4 @@
-use std::path::{PathBuf, Path};
+use std::{io::stdin, path::{Path, PathBuf}};
 use anyhow::{anyhow, Result};
 use dirs::{desktop_dir, picture_dir};
 
@@ -41,4 +41,8 @@ pub fn get_instruction_path(debug: bool) -> Result<PathBuf>{
     let mut p = path.append(INSTUCTIONS_NAME);
     p.set_extension("txt");
     Ok(p)
+}
+
+pub fn wait_enter(){
+    stdin().read_line(&mut String::new()).unwrap();
 }

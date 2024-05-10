@@ -94,7 +94,7 @@ pub fn c_instructions(path: PathBuf) -> Result<Vec<Box<dyn ActDebug>>>{
     Ok(get_instructions(&lines))
 }
 
-pub fn run(inst: Vec<Box<dyn ActDebug>>) -> Result<Vec<Board>> {
+pub fn run(inst: Vec<Box<dyn ActDebug>>) -> Result<BoardBuilder> {
     if inst.len() == 0{
         return Err(anyhow!("no instructions where provided"));
     }
@@ -107,5 +107,5 @@ pub fn run(inst: Vec<Box<dyn ActDebug>>) -> Result<Vec<Board>> {
     for instruction in inst{
         instruction.act_on(&mut board)?;
     }
-    Ok(board.generate_tape().generate_boards())
+    Ok(board.generate_tape())
 }
