@@ -1,7 +1,7 @@
 use anyhow::Result;
 use std::io::Write;
 
-const STABLE_URL: &str = "...";
+const STABLE_URL: &str = "https://github.com/HasSak-47/loteria_cli/releases/download/stable/loteria_cli.exe";
 
 pub fn update() -> Result<()>{
     use std::process::Stdio;
