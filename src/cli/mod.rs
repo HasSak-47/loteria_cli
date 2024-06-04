@@ -5,18 +5,16 @@ use anyhow::{Result, anyhow};
 
 pub trait ActDebug : BoardActor + Debug {}
 
-impl ActDebug for BlackList{}
-impl ActDebug for Set {}
-impl ActDebug for MarkPair {}
-impl ActDebug for RandomMarkPair {}
-impl ActDebug for RandomCenterMarkPair {}
-impl ActDebug for UpperCenterMarkPair {}
-impl ActDebug for LowerCenterMarkPair {}
-impl ActDebug for SetCount {}
-impl ActDebug for SetTotal {}
-impl ActDebug for SetPair {}
+impl<T> ActDebug for T where
+    T: BoardActor + Debug {}
 
+
+// this is so ass
 fn str_to_ins(s: &str) -> Option<Box<dyn ActDebug>>{
+    let mut s = s.to_string();
+    while s.contains("  "){
+        s = s.replace("  ", " ");
+    }
     if s == "RandomMarkPair"{ Some(Box::new(RandomMarkPair::new())) }
     else if s == "RandomCenterMarkPair" { Some(Box::new(RandomCenterMarkPair::new()))}
     else if s == "UpperCenterMarkPair" { Some(Box::new(UpperCenterMarkPair::new())) }
@@ -61,6 +59,12 @@ fn str_to_ins(s: &str) -> Option<Box<dyn ActDebug>>{
                         usize::from_str_radix(divd[1], 10).unwrap(),
                         usize::from_str_radix(divd[2], 10).unwrap(),
                         )))
+        }
+        else
+        if divd[0] == "LuaActor" {
+            Some(Box::new(LuaActor::from_file(
+                        divd[1].into(),
+                        ).unwrap()))
         }
         else{
             None
@@ -107,5 +111,5 @@ pub fn run(inst: Vec<Box<dyn ActDebug>>) -> Result<BoardBuilder> {
     for instruction in inst{
         instruction.act_on(&mut board)?;
     }
-    Ok(board.generate_tape())
+    Ok(board.generate_tapes())
 }

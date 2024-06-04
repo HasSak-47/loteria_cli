@@ -55,7 +55,7 @@ fn get_images(path: PathBuf) -> Result<Vec<RgbImage>> {
 use clap::{Parser, Subcommand};
 
 #[derive(Parser, Debug)]
-#[command(version = "0.3", author = "Daniel Alanis")]
+#[command(version = "0.4", author = "Daniel Alanis")]
 struct Opts {
     #[clap(short, long)]
     verbose: bool,
@@ -86,7 +86,7 @@ enum Instructions{
 }
 
 struct RunOpts{
-    _override_config: String,
+    override_config: String,
     output         : PathBuf,
     deck           : PathBuf,
     inst           : Vec<Box<dyn ActDebug>>,
