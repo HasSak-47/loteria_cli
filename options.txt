@@ -1,7 +1,5 @@
-SetTotal 4
 SetCount 54
+SetTotal 2
 UpperCenterMarkPair
-SetPair 53 0
-SetPair 19 1
-SetPair 34 2
-SetPair 45 3
+SetPair 1 0
+SetPair 2 1

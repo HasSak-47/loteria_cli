@@ -10,6 +10,7 @@ image = "0.24.7"
 anyhow = "1.0.81"
 thiserror = "1.0.58"
 reqwest = "*" # gonna decide later
+egui = "0.28.1"
 
 [dependencies.loteria_engine]
 path = "../loteria_engine"
