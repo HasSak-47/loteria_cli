@@ -21,6 +21,9 @@ impl Cli{
             BOARD.get_total(),
             BOARD.get_dims(),
         )};
+        debug!(self.opts, "count: {count}");
+        debug!(self.opts, "total: {total}");
+        debug!(self.opts, "size : {board_w}, {board_h}");
 
         let mut images = Vec::new();
         for i in 0..count{
@@ -40,10 +43,11 @@ impl Cli{
         for indx in 0..total{
             debug!(self.opts, "generating board {indx}..");
             let table = &tables[indx];
-            for ij in 0..16{
-                let i = ij % 4;
-                let j = ij / 4;
+            for ij in 0..board_w * board_h{
+                let i = ij % board_w;
+                let j = ij / board_w;
 
+                debug!(self.opts, "getting ({i}, {j})");
                 let card_index = table.get(i, j).unpack();
                 for w in 0..width{
                     for h in 0..height{
