@@ -19,4 +19,4 @@ path = "../loteria_engine"
 
 [dependencies.clap]
 version = "4.0.0"
-features = ["derive"]
+features = ["derive", "string"]

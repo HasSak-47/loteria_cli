@@ -1,9 +1,10 @@
 // mods
 mod cli;
 mod gui;
+mod log;
 
 // std
-use std::{fs::File, io::{BufReader, Read}, path::PathBuf, str::FromStr};
+use std::{borrow::Borrow, path::PathBuf};
 
 // libs
 #[allow(unused_imports)]
@@ -14,7 +15,7 @@ use cli::Cli;
 #[allow(dead_code)]
 fn defualt_deck_path() -> PathBuf{
     let mut pictures = dirs::picture_dir().unwrap();
-    pictures.push("barajas");
+    pictures.push("baraja");
     pictures
 }
 
@@ -25,7 +26,7 @@ fn defualt_board_path() -> PathBuf{
     pictures
 }
 
-#[derive(Parser, Debug)]
+#[derive(Parser, Debug, Default, Clone)]
 #[command(version = "0.4", author = "Daniel Alanis")]
 struct Opts {
     #[clap(short, long)]
@@ -36,27 +37,20 @@ struct Opts {
 
     #[clap(long)]
     override_config: Option<String>,
+    #[clap( short, long, default_value = defualt_board_path().into_os_string() )]
+    output: PathBuf,
 
-    #[clap(short, long, default_value = "defualt_board_path")]
-    output: Option<PathBuf>,
+    #[clap( short, long, default_value = defualt_deck_path().into_os_string() )]
+    deck: PathBuf,
 
-    #[clap(short, long, default_value = "defualt_deck_path")]
-    deck: Option<PathBuf>,
+    #[clap(short, long, default_value = "image-")]
+    in_format: String,
+
+    #[clap(short, long, default_value = "carta-")]
+    out_format: String,
 
     #[clap(subcommand)]
     option: Option<Instructions>,
-}
-
-#[derive(Debug, Default, Clone, Copy)]
-pub struct DataOpts{
-    verbose: bool,
-    debug: bool,
-}
-
-impl From<&Opts> for DataOpts{
-    fn from(value: &Opts) -> Self {
-        Self{ verbose: value.verbose, debug: value.debug }
-    }
 }
 
 #[derive(Subcommand, Debug, Default, Clone)]
@@ -70,11 +64,12 @@ enum Instructions{
 
 fn main() -> Result<()>{
     let opts = Opts::parse();
-    let dataops = DataOpts::from(&opts);
+    let inst = opts.option.clone().unwrap_or(Instructions::Gui);
+    debug!(opts, "options: {opts:?}");
 
-    match opts.option.unwrap_or( Instructions::default() ){
-        Instructions::Gui => gui::GUI::new(dataops).run(),
-        Instructions::Cli { path } => Cli::from_path(path)?.run(),
+    match inst {
+        Instructions::Gui => gui::GUI::new(opts).run(),
+        Instructions::Cli { path } => Cli::config(opts, path)?.run(),
         _ => Err(anyhow!("not implemented")),
     }?;
 
