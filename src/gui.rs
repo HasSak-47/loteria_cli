@@ -59,6 +59,7 @@ impl App for GUI{
                 ui.label("nombre de carta:");
                 ui.text_edit_singleline( &mut self.opts.out_format );
                 ui.end_row();
+                ui.toggle_value(&mut self.opts.debug, "debug");
 
                 if ui.button("run").clicked(){
                     let opts = self.opts.clone();
