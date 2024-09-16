@@ -1,7 +1,6 @@
 // mods
 mod cli;
 mod gui;
-mod log;
 
 // std
 use std::{fs::File, io::{BufReader, Read}, path::PathBuf, str::FromStr};
