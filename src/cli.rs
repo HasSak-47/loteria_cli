@@ -15,7 +15,6 @@ pub struct Cli{
 impl Cli{
     pub fn run(self) -> Result<()>{
         init(self.lua_src.as_str())?;
-        let tables = run()?;
         let (count, total, (board_w, board_h)) = unsafe{(
             BOARD.get_count(),
             BOARD.get_total(),
@@ -24,6 +23,13 @@ impl Cli{
         debug!(self.opts, "count: {count}");
         debug!(self.opts, "total: {total}");
         debug!(self.opts, "size : {board_w}, {board_h}");
+
+        for i in 0..total{
+            let prototype = unsafe{BOARD.get_board_prototype(i)};
+            debug!(self.opts, "table_{i}:\n{}", prototype);
+        }
+
+        let tables = run()?;
 
         let mut images = Vec::new();
         for i in 0..count{
